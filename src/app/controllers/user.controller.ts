@@ -1,64 +1,39 @@
-import { Knex, knex } from 'knex';
-import { Request, Response } from 'express';
-import knexConfig from '../../shared/configs/database.config';
-import { UserInputDto } from '@dtos/userInput.dto';
-import * as bcrypt from 'bcrypt';
-import { plainToClass } from 'class-transformer';
-import { UserOuputDto } from '@dtos/userOutput.dto';
-import { validate } from 'class-validator';
+import { NextFunction, Request, Response } from 'express';
+import { AuthRequest } from '@shared/utils/request.interface';
+import { UsersService } from '@app/services/user.service';
 
 export class UsersController {
-  private knex: Knex;
+  private service: UsersService;
 
   constructor() {
-    this.knex = knex(knexConfig);
+    this.service = new UsersService();
   }
 
   public heathCheck = async (req: Request, res: Response): Promise<void> => {
-    try {
-      this.knex.raw('SELECT 1');
+    await this.service.heathCheck(req, res);
 
-      res.status(200).json('heath check success!');
-    } catch (error) {
-      throw new Error('Error!');
-    }
+    res.status(200).json('Heath check success!');
   };
 
   public signUp = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const userInput = new UserInputDto();
-      userInput.email = req.body.email;
-      userInput.firstName = req.body.firstName;
-      userInput.lastName = req.body.lastName;
-      userInput.password = req.body.password;
+    const user = await this.service.signUp(req, res);
 
-      const errors = await validate(userInput);
-      if (errors.length) {
-        res.status(400).send('Input is wrong format');
-      }
+    res.status(201).json(user);
+  };
 
-      const hash: string = await bcrypt.hash(userInput.password, 1);
-      const saveUser = { ...userInput, hash };
-      delete saveUser.password;
+  public signIn = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.service.signIn(req, res);
 
-      let user = await this.knex('Users').insert(saveUser);
-      let responseData: any = await this.knex
-        .select('*')
-        .from('Users')
-        .where('id', user[0]);
+    res.status(201).json(data);
+  };
 
-      res.status(201).json(
-        plainToClass(
-          UserOuputDto,
-          {
-            ...responseData[0],
-            displayName: responseData[0].firstName + responseData[0].lastName,
-          },
-          { excludeExtraneousValues: true },
-        ),
-      );
-    } catch (error) {
-      throw new Error("can't sign in");
-    }
+  public signOut = async (req: AuthRequest, res: Response): Promise<void> => {
+    await this.service.signOut(req, res);
+
+    res.status(201).json({ message: 'Sign out successfully!' });
+  };
+
+  public refreshToken = async (req: Request, res: Response) => {
+    await this.service.refreshToken(req, res);
   };
 }
