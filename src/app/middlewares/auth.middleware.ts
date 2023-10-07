@@ -1,6 +1,8 @@
+import { Payload } from '@shared/utils/payload.interface';
 import { AuthRequest } from '@shared/utils/request.interface';
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { plainToClass } from 'class-transformer';
 
 export const authMiddleware = async (
   req: AuthRequest,
@@ -8,11 +10,11 @@ export const authMiddleware = async (
   next: NextFunction,
 ) => {
   try {
-    const token = req.header('Authorization');
+    const token: string = req.header('Authorization');
 
     if (!token) return res.status(400).json({ msg: 'Invalid Authentication.' });
 
-    const decode: any = jwt.verify(
+    const decode = jwt.verify(
       token.split(' ')[1],
       process.env.ACCESS_TOKEN_SECRET,
     );
@@ -20,7 +22,7 @@ export const authMiddleware = async (
     if (!decode)
       return res.status(400).json({ msg: 'Invalid Authentication.' });
 
-    req.userId = decode.id;
+    req.auth = plainToClass(Payload, decode);
 
     next();
   } catch (error: any) {

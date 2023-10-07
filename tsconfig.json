@@ -24,8 +24,7 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@controllers/*": ["src/app/controllers/*"],
-      "@entities/*": ["src/app/entities/*"],
-      "@repositories/*": ["src/app/repositories/*"],
+      "@services/*": ["src/app/services/*"],
       "@dtos/*": ["src/app/dtos/*"],
       "@routers/*": ["src/app/routers/*"],
       "@app/*": ["src/app/*"],

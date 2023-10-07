@@ -1,4 +1,3 @@
-import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import { usersRoute } from '@routers/user.route';
@@ -25,7 +24,6 @@ class AppProvider {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-    this.app.use(cookieParser());
   }
 
   private initializeRoutes() {

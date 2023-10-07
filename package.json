@@ -7,7 +7,8 @@
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nodemon --legacy-watch",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
@@ -15,26 +16,34 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
-    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "eslint": "^8.50.0",
     "express": "^4.18.2",
     "express-jwt": "^8.4.1",
+    "jest": "^29.7.0",
     "knex": "^2.5.1",
     "mysql": "^2.18.1",
-    "mysql2": "^3.6.1",
-    "parse-database-url": "^0.3.0",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "supertest": "^6.3.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-decorators": "^7.23.0",
+    "@babel/preset-env": "^7.22.20",
+    "@babel/preset-typescript": "^7.23.0",
+    "@jest/globals": "^29.7.0",
     "@types/bcrypt": "^5.0.0",
     "@types/cors": "^2.8.14",
     "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.18",
+    "@types/jsonwebtoken": "^9.0.3",
     "@types/node": "^20.8.2",
+    "@types/supertest": "^2.0.14",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
+    "babel-jest": "^29.7.0",
     "nodemon": "^3.0.1",
     "prettier": "^3.0.3",
     "rimraf": "^5.0.5",
@@ -42,5 +51,27 @@
     "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.2.2"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^@controllers(.*)$": [
+        "<rootDir>/src/app/controllers$1"
+      ],
+      "^@services(.*)$": [
+        "<rootDir>/src/app/services$1"
+      ],
+      "^@dtos(.*)$": [
+        "<rootDir>/src/app/dtos$1"
+      ],
+      "^@routers(.*)$": [
+        "<rootDir>/src/app/routers$1"
+      ],
+      "^@app(.*)$": [
+        "<rootDir>/src/app$1"
+      ],
+      "^@shared(.*)$": [
+        "<rootDir>/src/shared$1"
+      ]
+    }
   }
 }

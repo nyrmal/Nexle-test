@@ -6,7 +6,7 @@ export class UserInputDto {
   email: string;
 
   @IsString()
-  @Length(1, 255)
+  @Length(8, 20)
   password: string;
 
   @IsString()

@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from 'express';
-import { AuthRequest } from '@shared/utils/request.interface';
-import { UsersService } from '@app/services/user.service';
+import { UsersService } from '@services/user.service';
+import { Request, Response } from 'express';
+import { Request as JWTRequest } from 'express-jwt';
 
 export class UsersController {
   private service: UsersService;
@@ -24,13 +24,13 @@ export class UsersController {
   public signIn = async (req: Request, res: Response): Promise<void> => {
     const data = await this.service.signIn(req, res);
 
-    res.status(201).json(data);
+    res.status(200).json(data);
   };
 
-  public signOut = async (req: AuthRequest, res: Response): Promise<void> => {
+  public signOut = async (req: JWTRequest, res: Response): Promise<void> => {
     await this.service.signOut(req, res);
 
-    res.status(201).json({ message: 'Sign out successfully!' });
+    res.status(204).json('ok!');
   };
 
   public refreshToken = async (req: Request, res: Response) => {

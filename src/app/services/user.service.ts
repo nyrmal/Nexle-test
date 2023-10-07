@@ -1,5 +1,5 @@
 import { Knex, knex } from 'knex';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import knexConfig from '@shared/configs/database.config';
 import { UserInputDto } from '@dtos/userInput.dto';
 import * as bcrypt from 'bcrypt';
@@ -9,9 +9,9 @@ import { UserLoginInputDto } from '@dtos/userLoginInput.dto';
 import { UserLoginOutputDto } from '@dtos/userLoginOutput.dto';
 import { createAccessToken, createRefreshToken } from '@shared/utils/tokens';
 import { REFRESH_TOKEN_EXPIRE } from '@shared/utils/constant';
-import { AuthRequest } from '@shared/utils/request.interface';
-import jwt from 'jsonwebtoken';
+import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { TokenOutputDto } from '@dtos/tokenOutput.dto';
+import { Request as JWTRequest } from 'express-jwt';
 
 export class UsersService {
   private knex: Knex;
@@ -22,7 +22,14 @@ export class UsersService {
 
   public heathCheck = async (req: Request, res: Response): Promise<boolean> => {
     try {
-      this.knex.raw('SELECT 1');
+      await this.knex
+        .raw('SELECT 1')
+        .then(() => {
+          console.log('Mysql connected');
+        })
+        .catch((e) => {
+          console.log('Mysql not connected');
+        });
 
       return true;
     } catch (error: any) {
@@ -37,9 +44,9 @@ export class UsersService {
     try {
       const userInput: UserInputDto = req.body;
 
-      let emailExist = await this.knex
+      const emailExist = await this.knex
         .select('*')
-        .from('Users')
+        .from('users')
         .where('email', userInput.email)
         .first();
 
@@ -51,14 +58,19 @@ export class UsersService {
 
       // Encrypt password
       const hash: string = await bcrypt.hash(userInput.password, 12);
-      const saveUser = { ...userInput, hash };
+      const saveUser = {
+        ...userInput,
+        hash,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       delete saveUser.password;
 
-      let user = await this.knex('Users').insert(saveUser);
-      let responseData: any = await this.knex
+      const [id] = await this.knex('users').insert(saveUser);
+      const responseData = await this.knex
         .select('*')
-        .from('Users')
-        .where('id', user[0])
+        .from('users')
+        .where('id', id)
         .first();
 
       return plainToClass(
@@ -81,9 +93,9 @@ export class UsersService {
     try {
       const userInput: UserLoginInputDto = req.body;
 
-      let user = await this.knex
+      const user = await this.knex
         .select('*')
-        .from('Users')
+        .from('users')
         .where('email', userInput.email)
         .first();
 
@@ -102,22 +114,25 @@ export class UsersService {
       const refreshToken = createRefreshToken({ id: user.id });
 
       const now = new Date();
-      let tokenData = {
+      const tokenData = {
         userId: user.id,
         refreshToken,
         expiresIn: `${now.setDate(now.getDate() + REFRESH_TOKEN_EXPIRE)}`,
+        createdAt: now,
+        updatedAt: now,
       };
 
-      let tokenExist = await this.knex
+      const tokenExist = await this.knex
         .select('*')
-        .from('Tokens')
+        .from('tokens')
         .where('userId', user.id)
         .first();
 
+      // update old token or create new
       if (tokenExist) {
-        await this.knex('Tokens').where('userId', user.id).update(tokenData);
+        await this.knex('tokens').where('userId', user.id).update(tokenData);
       } else {
-        await this.knex('Tokens').insert(tokenData);
+        await this.knex('tokens').insert(tokenData);
       }
 
       return plainToClass(
@@ -138,14 +153,11 @@ export class UsersService {
     }
   };
 
-  public signOut = async (
-    req: AuthRequest,
-    res: Response,
-  ): Promise<boolean> => {
+  public signOut = async (req: JWTRequest, res: Response): Promise<boolean> => {
     try {
-      let userId = req.userId;
+      const userId = req.auth.id;
 
-      await this.knex('Tokens').where('userId', userId).del();
+      await this.knex('tokens').where('userId', userId).del();
 
       return true;
     } catch (error: any) {
@@ -160,21 +172,16 @@ export class UsersService {
     try {
       const rfToken = req.body.refreshToken;
       if (!rfToken) {
-        res.status(400).json({ error: 'Please login' });
+        res.status(404).json({ error: 'refresh token invalid' });
         return;
       }
 
       jwt.verify(
         rfToken,
         process.env.REFRESH_TOKEN_SECRET,
-        async (err, result) => {
+        async (err: JsonWebTokenError, result) => {
           if (err) {
             res.status(400).json({ error: 'Please login' });
-            return;
-          }
-
-          if (!result.id) {
-            res.status(404).json({ error: 'Supplied does not exist' });
             return;
           }
 
@@ -182,24 +189,27 @@ export class UsersService {
           const refreshToken = createRefreshToken({ id: result.id });
 
           const now = new Date();
-          let tokenData = {
+          const tokenData = {
             userId: result.id,
             refreshToken,
             expiresIn: `${now.setDate(now.getDate() + REFRESH_TOKEN_EXPIRE)}`,
+            createdAt: now,
+            updatedAt: now,
           };
 
-          let tokenExist = await this.knex
+          const tokenExist = await this.knex
             .select('*')
-            .from('Tokens')
+            .from('tokens')
             .where('userId', result.id)
             .first();
 
+          // update old token or create new
           if (tokenExist) {
-            await this.knex('Tokens')
+            await this.knex('tokens')
               .where('userId', result.id)
               .update(tokenData);
           } else {
-            await this.knex('Tokens').insert(tokenData);
+            await this.knex('tokens').insert(tokenData);
           }
 
           res.status(200).json(
